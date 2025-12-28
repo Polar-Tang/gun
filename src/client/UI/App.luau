@@ -4,7 +4,7 @@ local Roact = require(RS.Roact)
 local src = script.Parent.src
 local MainAppUI = require(src.MainApp)
 local ctx = src.Context
-local PromptProvider = require(ctx.PromptContext.PromptProvider)
+-- local PromptProvider = require(ctx.PromptContext.PromptProvider)
 
 local Players = game:GetService("Players")
 
@@ -15,9 +15,9 @@ function App:render()
 		ResetOnSpawn = false,
 		IgnoreGuiInset = false,
 	}, {
-		PromptProvider = Roact.createElement(PromptProvider, {}, {
+		-- PromptProvider = Roact.createElement(PromptProvider, {}, {
 			AppUI = Roact.createElement(MainAppUI),
-		}),
+		-- }),
 	})
 end
 
