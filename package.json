@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@quenty/deathreport": "^10.30.0",
+    "@quenty/playerutils": "^8.21.3"
+  }
+}

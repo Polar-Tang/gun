@@ -8,7 +8,7 @@ local char = plr.Character
 
 --||Folder||--
 -- TODO: use sounds
-local SFXFolder = SoundService:WaitForChild("SFX")
+-- local SFXFolder = SoundService:WaitForChild("SFX")
 
 --||Modules||--
 

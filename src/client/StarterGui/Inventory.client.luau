@@ -1,85 +1,61 @@
---TODO: this script is only listeen for a single weapon, we need a weapon to listen to any weapon equipped by the player and fire Equipment remote event
-
 --||Service||--
-local StarterGui = game:GetService("StarterGui")
 local Players = game:GetService("Players")
-local RS = game:GetService("ReplicatedStorage")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
-local BackpackCoreGui = Enum.CoreGuiType.Backpack
-local FPS = require(ReplicatedStorage.Viewmodels.FPS)
+local PlayerBrio = require(_G.PlayerBrio)
 
+--||Helpers||--
+local ToolWrapper = require(script.Parent.ToolWrapper)
 
 --||Player||--
 local player: Player = Players.LocalPlayer
 
 local char = player.Character or player.CharacterAdded:Wait()
 
---||RemoteEvents||--
-local remotes = RS.Events
-local Equipment = remotes.Equipment
-local tool = player.Backpack:WaitForChild("Fist")
-------------------------------------------------------------------------------------------------------------------
+local toolControllers = {}
 
-StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+local connectTool = function(tool)
+	if not tool or not tool:IsA("Tool") then
+		return
+	end
 
+	local wrapper = ToolWrapper.new(tool, player)
+	toolControllers[tool] = wrapper
+end
 
-tool.Equipped:Connect(function()
-	FPS:EquipGun("ViewmodelAnim")
-	StarterGui:SetCoreGuiEnabled(BackpackCoreGui, false)
-	task.delay(0.6, function()
-		StarterGui:SetCoreGuiEnabled(BackpackCoreGui, true)
-	end)
+-- Listen for tools added to the backpack
+player.Backpack.ChildAdded:Connect(connectTool)
 
-	Equipment:FireServer({
-		tool = tool,
-		has_to_equip = true,
-	})
+-- initial backpack tools
+for _, t in ipairs(player.Backpack:GetChildren()) do
+	connectTool(t)
+end
+
+-- TODO: TEST IF Handle character (respawn) and tools parented to character
+if char then
+	for _, t in ipairs(char:GetChildren()) do
+		connectTool(t)
+	end
+	char.ChildAdded:Connect(connectTool)
+end
+
+-- Wrap it to the player brio to clean up on death
+PlayerBrio:Subscribe(function(characterBrio)
+	local character = characterBrio:GetValue()
+	local maid = characterBrio:ToMaid()
+
+	maid:GiveTask(player.CharacterAdded:Connect(function(newChar)
+		char = newChar
+		for _, t in ipairs(char:GetChildren()) do
+			connectTool(t)
+		end
+		char.ChildAdded:Connect(connectTool)
+	end))
+
+	maid:GiveTask(character.Humanoid.Died:Connect(function()
+		-- Clean up tool wrappers on death
+		for _, wrapper in pairs(toolControllers) do
+			wrapper:Destroy()
+		end
+		toolControllers = {}
+	end))
 end)
-
-tool.Unequipped:Connect(function()
-	StarterGui:SetCoreGuiEnabled(BackpackCoreGui, false)
-	task.delay(0.6, function()
-		StarterGui:SetCoreGuiEnabled(BackpackCoreGui, true)
-	end)
-	Equipment:FireServer({
-		has_to_equip = false,
-	})
-end)
-
--- local HitboxClass = require(ReplicatedStorage.HitboxClass)
--- Remotes events (i got the code smell to migrate this)
-local Events = ReplicatedStorage.Events
-local HitboxResponseRemote = Events.HitboxResponseRemote
-
--- This event is called in the server after it has Execute() the ability
--- HitboxResponseRemote.OnClientEvent:Connect(function(attackInfo)  
-	
--- 	local Tool_sober: Tool = char:FindFirstChild("Fist")
-
--- 	if not Tool_sober then 
--- 		warn("Weapon don't found")
--- 		return 
--- 	end
--- 	-- Create a sword hitbox that follows the weapon
--- 	local hitbox = HitboxClass.new("Box", {
--- 		root = Tool_sober.BodyAttach,
--- 		size = Vector3.new(4, 1, 6),
--- 		duration = 2,
--- 		velocityPrediction = true,
--- 		dotProductFilter = {
--- 			dotProduct = 0.1,
--- 			referenceVector = char.PrimaryPart.CFrame.LookVector,
--- 			sourcePosition = char.PrimaryPart.Position,
--- 		},
--- 		hitboxId = "sword_" .. player.UserId,
--- 		HitMode = "Weak",
--- 		debug = true,
--- 	})
-	
--- 	hitbox.OnHit:Connect(function(character, hitPart)
--- 		HitboxResponseRemote:FireServer(attackInfo.AttackID, character)
--- 	end)
-	
--- 	hitbox:Start()
--- end)
